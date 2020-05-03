@@ -1,0 +1,26 @@
+---
+title: "Reproducible Research   Course Project 2"
+author: "John Lin"
+output: html_document
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Synopsis
+
+## Data Processing
+
+```{r, cache = TRUE}
+# Download data.
+if (!file.exists("data.csv.bz2")) {
+  download.file(url = "https://d396qusza40orc.cloudfront.net/repdata%2Fdata%2FStormData.csv.bz2", 
+                destfile = "data.csv.bz2")
+}
+
+# Load data.
+data <- read.csv("data.csv.bz2")
+```
+
+## Results
