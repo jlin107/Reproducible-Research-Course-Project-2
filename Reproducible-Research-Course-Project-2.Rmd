@@ -1,5 +1,5 @@
 ---
-title: "Reproducible Research   Course Project 2"
+title: "Analysis of public health and economic problems caused by severe weather events in the United States from 1950 to 2011"
 author: "John Lin"
 output: html_document
 ---
@@ -8,19 +8,25 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-## Synopsis
+# Synopsis
 
-## Data Processing
+Severe weather events can cause both public health and economic problems, such as fatalities, injuries, property damage, and crop damage. This report will attempt to answer two questions: 1. Which types of events are most harmful to population health, i.e. fatalities and injuries, and 2. Which types of events have the greatest economic consequences, i.e. property damage and crop damage. We will analyze the United States National Oceanic and Atmospheric Administration's (NOAA) storm [database](https://d396qusza40orc.cloudfront.net/repdata%2Fdata%2FStormData.csv.bz2), which tracks characteristics of major storms and weather events in the United States from 1950 to 2011.
+
+From our data analysis, we conclude the types of events most harmful to population health include tornadoes, heat, floods, lightning, and thunderstorms. On the other hand, the types of events with the greatest economic consequences include droughts, floods, ice storms, hail, hurricanes, tornades, and storm surges.
+
+# Data Processing
+
+We first loaded any necessary libraries.
 
 ```{r, message = FALSE}
 # Load libraries.
 library(plyr)
 library(dplyr)
-library(reshape)
 library(ggplot2)
-library(gridExtra)
 library(egg)
 ```
+
+We then downloaded the [data](https://d396qusza40orc.cloudfront.net/repdata%2Fdata%2FStormData.csv.bz2) and loaded it into an R object called `data`. Documentation about the data can be found [here](https://d396qusza40orc.cloudfront.net/repdata%2Fpeer2_doc%2Fpd01016005curr.pdf) and [here](https://d396qusza40orc.cloudfront.net/repdata%2Fpeer2_doc%2Fpd01016005curr.pdf). For our purposes, the type of event can be found in the EVTYPE column, the number of fatalities in the FATALITIES column, the number of injuries in the INJURIES column, the crop damage in the CROPDMG and CROPDMGEXP columns, and the property damage in the PROPDMG and PROPDMGEXP columns. Note the CROPDMGEXP and PROPDMGEXP correspond to numeric multipliers. 
 
 ```{r, cache = TRUE}
 # Download data.
@@ -33,7 +39,7 @@ if (!file.exists("data.csv.bz2")) {
 data <- read.csv("data.csv.bz2")
 ```
 
-https://github.com/flyingdisc/RepData_PeerAssessment2/blob/master/how-to-handle-PROPDMGEXP.md
+We then calculated the total number of fatalities and/or injuries from 1950 to 2011 for each type of event using the FATALITIES and INJURIES columns. We stored the results in an R object called `event.by.fatal.injur`.
 
 ```{r}
 # Calculate number of fatalities or injuries.
@@ -42,9 +48,12 @@ event.by.fatal.injur <- data %>%
   summarize(fatalities = sum(FATALITIES, na.rm = TRUE),
             injuries = sum(INJURIES, na.rm = TRUE))
 event.by.fatal.injur$both <- with(event.by.fatal.injur, fatalities + injuries)
+head(event.by.fatal.injur)
 ```
 
-```{r}
+We then calculated the total crop and/or property damage from 1950 to 2011  for each type of event using CROPDMG, PROPDMG, CROPDMGEXP, and PROPDMGEXP columns. Note we first converted the CROPDMGEXP and PROPDMGEXP columns to numeric multipliers (see documentation [here](https://github.com/flyingdisc/RepData_PeerAssessment2/blob/master/how-to-handle-PROPDMGEXP.md)). We stored the results in an R object called `event.by.damage`.
+
+```{r, message = FALSE}
 # Replace CROPDMGEXP and PROPDMGEXP.
 exp.to.mult <- function(x) {
   levels(x)[1] <- "Blank"
@@ -54,10 +63,10 @@ exp.to.mult <- function(x) {
           "0" = 10, "1" = 10, "2" = 10, "3" = 10, "4" = 10, 
           "5" = 10, "6" = 10, "7" = 10, "8" = 10, "9" = 10))
 }
-data$damage.crop <- as.numeric(data$CROPDMG) *
-  as.numeric(exp.to.mult(data$CROPDMGEXP)) 
+data$damage.crop <- as.numeric(as.character(data$CROPDMG)) *
+  as.numeric(as.character(exp.to.mult(data$CROPDMGEXP))) 
 data$damage.prop <- as.numeric(data$PROPDMG) *
-  as.numeric(exp.to.mult(data$PROPDMGEXP))
+  as.numeric(as.character(exp.to.mult(data$PROPDMGEXP)))
 
 # Calculate actual damage in USD.
 event.by.damage <- data %>%
@@ -65,9 +74,13 @@ event.by.damage <- data %>%
   summarize(crop = sum(damage.crop, na.rm = TRUE),
             prop = sum(damage.prop, na.rm = TRUE))
 event.by.damage$both <- with(event.by.damage, crop + prop)
+head(event.by.damage)
 ```
 
-## Results
+# Results
+
+We first plotted a bar graph of the number of fatalities and/or injuries for the top 5 types of events. The left, center, and right panels display the number of fatalities alone, injuries alone, and fatalities and injuries combined, respectively. Clearly, tornadoes caused the greatest number of fatalities and injuries. Other types of events listed include heat, floods, lightning, and thunderstorms. 
+
 ```{r}
 # Plot.
 p1 <- ggplot(arrange(event.by.fatal.injur, desc(fatalities))[1:5, c(1,2)],
@@ -87,6 +100,8 @@ ggarrange(p1, p2, p3, nrow = 1,
           left = "Frequency", bottom = "Event type")
 ```
 
+We then plotted a bar graph of the crop and property damages for the top 5 types of events. The left, center, and right panels display the crop damage alone, property damage alone, and crop and property damages combined, respectively. Droughts caused the greatest crop damage, whereas floods caused the greatest property damage. Other types of events listed include ice storms, hail, hurricanes, tornadoes, and storm surges.
+
 ```{r}
 # Plot.
 p4 <- ggplot(arrange(event.by.damage, desc(crop))[1:5, c(1,2)],
@@ -105,3 +120,7 @@ ggarrange(p4, p5, p6, nrow = 1,
           top = "Top 5 event types by crop and/or property damage",
           left = "Damage (USD)", bottom = "Event type")
 ```
+
+In summary, the types of events most harmful to population health (i.e. fatalities and injuries) include tornadoes, heat, floods, lightning, and thunderstorms. The types of events with the greatest economic consequences (i.e. crop and property damages) include droughts, floods, ice storms, hail, hurricanes, tornades, and storm surges.
+
+Note that some types of events were listed multiple times in the database. For example, thunderstorms was listed as either "TSTM WIND" or "THUNDERSTORM WIND". Future analysis should attempt to merge these labels together into a single category. Furthermore, it may be interesting to see if any trends appear over the time period of data collection (1950 - 2011).
